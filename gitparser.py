@@ -32,14 +32,19 @@ class git_repo(object):
         patch.split('\n')
         files = {}
         added = removed = 0
+        name_was = None
         for line in patch.split('\n'):
             if len(line) == 0:
                 continue
             if line[0:3] == '+++':
                 track = {}
-                files[line[6:]] = track
+                if (line == "+++ /dev/null"): # Deleted file
+                    files[name_was] = track
+                else:
+                    files[line[6:]] = track
                 track['added'] = track['removed'] = 0
             elif line[0:3] == '---':
+                name_was = line[6:]
                 pass
             elif line[0] == '+':
                 track['added'] += 1
