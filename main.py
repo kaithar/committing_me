@@ -76,6 +76,6 @@ import pprint
 
 # This is terrible form, I know, I'll clean it up at some point
 import json
-f = open('statics/commits.js', 'w')
+f = open(config.output_file, 'w')
 f.write('var commits = {};'.format(json.dumps(by_date, indent=2, sort_keys=True)))
 #pprint.pprint(test_list)

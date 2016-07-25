@@ -14,3 +14,5 @@ include_committers = [
     'kaithar@users.noreply.github.com',
 ]
 
+# Output location
+output_file = 'data/commits.js'
