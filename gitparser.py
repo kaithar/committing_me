@@ -20,11 +20,12 @@ class git_repo(object):
     def diff_to_parent(self, commit):
         """Just hiding away the ugly way I'm generating diffs"""
         if (len(commit.parents) == 1):
-            diff = commit.tree.diff_to_tree(commit.parents[0].tree, swap=True)
+            return commit.tree.diff_to_tree(commit.parents[0].tree, swap=True)
         elif (len(commit.parents) == 0):
-            diff = commit.tree.diff_to_tree(swap=True)
+            return commit.tree.diff_to_tree(swap=True)
         else:
             print(repr(commit.parents))
+            return None
 
     def patch_splatter(self, patch):
         """Turns out it's easier to eat patch output than to make my own diff"""

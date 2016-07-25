@@ -61,7 +61,7 @@ for repo_name in config.repos:
 
             # diff_to_parent and patch_splatter hide much ugly
             diff = rc.diff_to_parent(commit)
-            if (diff.patch):
+            if (diff and diff.patch):
                 pstat = rc.patch_splatter(diff.patch)
                 for v in pstat.values():
                     bucket_dict['lines_added'] += v['added']
