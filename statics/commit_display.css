@@ -1,0 +1,15 @@
+body {
+  font: 10px sans-serif;
+  shape-rendering: crispEdges;
+}
+
+.day {
+  stroke: #ccc;
+  fill: #fff;
+}
+
+.month {
+  fill: none;
+  stroke: #000;
+  stroke-width: 1px;
+}
