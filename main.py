@@ -72,7 +72,7 @@ for repo_name in config.repos:
             print("------")
             #break
 import pprint
-#pprint.pprint(by_date)
+#pprint.pprint(test_list)
 
 # This is terrible form, I know, I'll clean it up at some point
 import json
