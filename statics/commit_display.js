@@ -53,8 +53,9 @@ function monthPath(t0) {
 
 // We want 1 svg per year.  Figure out the start
 var first_date = new Date(d3.min(d3.map(commits).keys()));
+var last_date = new Date(d3.max(d3.map(commits).keys()));
 var yearsvg = d3.select(".commitcalender").selectAll("svg")
-    .data(d3.range(first_date.getFullYear(), 2017))
+    .data(d3.range(first_date.getFullYear(), last_date.getFullYear()+1))
   .enter().append("svg")
     .attr("width", width).attr("height", height)
     .attr("class", "year")
