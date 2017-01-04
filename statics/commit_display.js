@@ -6,12 +6,17 @@ window.onload = function (){
 // As well as cleaning up and extending the code, I had to port it to D3 v4.
 // This is why the code is heavily commented ;)
 
-// Get the maximum number
-var commit_max = d3.max(d3.map(commits).values(), function (d) {return d['commits']});
+// We'll fill this later with the maximum number... we do it this way so we can reuse it
+var commit_max;
+
 // Calculate scale factor: c_max * c_F = scale_cap, thus c_F = scale_cap / c_max
 // We're using 0.6 to let us use 0.15-0.75 on the colour range since the top 25% is harsh and bottom 15% too light
 // This function takes the number of commits and returns a value to pass to interpolate
 function commit_scale(c) { return c*(0.6/commit_max)+0.15 };
+
+// We'll use this function later to fill the legend under the map later.  d is a number between 0 and 10, 11 boxes total
+// We ignore the 0 so 1-10 * 0.06 + 0.15 to give the same range.  Have to ignore the 0 so it isn't 0.15
+function scale_legend_fill(d) { if (d) return d3.interpolateBlues((0.06*d)+0.15); };
 
 // Some general values
 var cellSize = 8,
@@ -63,24 +68,22 @@ var scale = d3.select(".commitcalender").append("svg")
 
 // Fix horrible float representation
 var ffix = d3.format(".1f");
-// Make 11 boxes showing 0% - 100% in increments of 10%
-scale.selectAll(".scale").data(d3.range(0,11))
+// Make 11 boxes showing 0% - 100% in increments of 10%.  We'll colour them later.
+scaletitles = scale.selectAll(".scale").data(d3.range(0,11))
         .enter().append("rect")
           .attr("class", "day scale")
           .attr("width", cellSize).attr("height", cellSize)
           .attr("x", function(d){ return cellSize*d+hpad} ).attr("y", vpad+3 )
-          // fraction of commit max adjusted to colour scale range
-          .style("fill", function (d) { if (d) return d3.interpolateBlues(commit_scale(commit_max*(0.1*d)));})
-          .append("title")
-            .text(function (d) { return ffix(commit_max*(0.1*d));})
+          .style("fill", scale_legend_fill)
+          .append("title");
 
-// Add some labels to it.  Sorry, more magic numbers.
+
+// Add some labels to it.  Sorry, more magic numbers.  We'll fill scale max later
 scale.append("text").attr("transform", "translate("+(hpad-2-cellSize)+", "+(vpad+cellSize+3)+")")
      .text("0");
 scale.append("text").style("text-anchor", "middle").attr("transform", "translate("+(hpad+cellSize*5.5)+", "+(vpad+1)+")")
      .text("Commit scale");
-scale.append("text").attr("transform", "translate("+(hpad+3+cellSize*11)+", "+(vpad+cellSize+3)+")")
-     .text(commit_max);
+scalemax = scale.append("text").attr("transform", "translate("+(hpad+3+cellSize*11)+", "+(vpad+cellSize+3)+")");
 
 // Year label, side ways.  -22 is an arbitrary "move it left" offset that looks good
 yearsvg.append("text")
@@ -106,6 +109,7 @@ var rect = yearsvg.selectAll(".day")
     .attr("class", "day")
     .attr("width", cellSize).attr("height", cellSize)
     .attr("x", weekX ).attr("y", dayY )
+    .style("fill", "rgb(255,255,255)")
     .datum(format);
 
 // Mouse over title, useful thing
@@ -132,11 +136,79 @@ monsvg.enter().append("text")
       .style("text-anchor", "left")
       .text(monthformat);
 
-// Filter for days that are in the commit keys, set their fill appropriately, set title text
-rect.filter(function(d) { return d in commits; })
-  .attr("class", "day active")
-  .style("fill", function (d) { return d3.interpolateBlues(commit_scale(commits[d]['commits']));})
-  .select("title")
-  .text(function(d) { return d + ": " + commits[d]['commits']; });
+function setfills(commithash) {
+  // And now for those laters I keep mentioning.
+  // Set the commit_max
+  commit_max = d3.max(d3.map(commithash).values(), function (d) {return d['commits']});
+  // Fill in the scale max text
+  scalemax.text(commit_max);
+  // Let's select before creating the transaction
+  // Filter for days that are in the commit keys, set their fill appropriately, set title text
+  turnon = rect.filter(function(d) { return d in commithash; }).attr("class", "day active");
+  // Clear everything else
+  turnoff = rect.filter(function(d) { return !(d in commithash); }).attr("class", "day");
+  // Set the titles, cause there's no fade there.
+  turnon.select("title").text(function(d) { return d + ": " + commithash[d]['commits']; });
+  turnoff.select("title").text("");
+  // Transition for sync
+  var t = rect.transition().duration(500).ease(d3.easeCubic);
+  // Now set the fills with fade!
+  turnon.transition(t).style("fill", function (d) { return d3.interpolateBlues(commit_scale(commithash[d]['commits']));});
+  turnoff.transition(t).style("fill", "rgb(255,255,255)");
+  // Fill the labels too ... only we're just going to set the title cause the colours are constant
+  // fraction of commit max adjusted to colour scale range.  If those change it means I messed up.
+  scaletitles.text(function (d) { return ffix(commit_max*(0.1*d));});
 
-};
+}
+
+// Set up the initial state
+setfills(commits);
+
+// Set up the info box
+repoproject = d3.select(".commitproject");
+repo_name = repoproject.append("div").attr("class", "commitname")
+repo_description = repoproject.append("div").attr("class", "commitdescription")
+repo_repocount = repoproject.append("div").attr("class", "commitrepocount")
+repo_extensions = repoproject.append("div").attr("class", "commitextensions")
+
+commitrepos = d3.select(".commitrepos");
+
+// Everything, resets the map.
+repolist = commitrepos.append("div")
+    .attr("class", "project")
+    .text("Clear")
+    .on('click', function(d) {
+      setfills(commits);
+      repoproject.style("display", "none");
+    });
+
+// Get the project list from the map
+var project_list = d3.map(projects).keys();
+// This creates the repo list.  Note the fake class so that we don't select clear div.
+repolist = commitrepos.selectAll("div.fakeclass")
+    .data(project_list)
+  .enter().append("div")
+    .attr("class", "project")
+    .text(function(d){return d;})
+    .on('click', function(d){
+      // This is our magical click handler.  Should be mostly self-explanatory
+      setfills(projects[d]['commits']);
+      repo_name.text(function(){return d});
+      repo_description.text(function(){return projects[d]['description']});
+      repo_repocount.text(function(){return "Repository count: "+projects[d]['repos'];});
+      repo_extensions.text(function(){return ""})
+          .append("div").attr("class", "extensions_label").text(function(d){
+              return "Extensions seen: ";
+          });
+      // Fill out the extension list.  We're sorting in a half hearted way.
+      repo_extensions.selectAll("div.extension")
+          .data(function () {return d3.map(projects[d]['extensions']).entries()})
+          .enter().append("div")
+          .attr("class", "extension")
+          .text(function (e){return e.key+": "+e.value;})
+          .sort(function (a,b) { return ((a.value > b.value) ? -1 : 1); });
+      // This is to unhide the info so we can just do a display: none when we clear repo
+      repoproject.style("display", "")
+    });
+
+ };

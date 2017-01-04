@@ -16,3 +16,16 @@ include_committers = [
 
 # Output location
 output_file = 'data/commits.js'
+
+# Project groups.  Description field is optional, repos is not.
+# Not all repos have to be in a project, this is just for ones you want to have separately from the "everything".
+projects = {
+    'Commit analysis': { 'repos': ['./'], 'description': "The code that makes this stuff" },
+    'Another Horrible Markup Language': {
+        'repos': ['data/repos/ahml/'],
+        'description': 'A web-specific markup language' },
+    'Audacious': {
+        'repos': ['data/repos/audacious/', 'data/repos/audacious-plugins/'],
+        'description': 'Audacious Media Player' },
+    'Salt interface': {'repos': ['data/repos/saline/']}
+}
